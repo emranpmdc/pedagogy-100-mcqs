@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SST Tests Preparation</title>
+    <!-- Use Tailwind CSS for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Include html2canvas for capturing the result as a PNG -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        /* Define a custom font family for Georgia */
+        .font-georgia {
+            font-family: Georgia, serif;
+        }
+
+        /* Style for the custom modal box */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(-50px);
+            opacity: 0;
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Button Gradient for Submit */
+        .submit-btn {
+            background-image: linear-gradient(to right, #10b981, #059669);
+            transition: all 0.3s ease;
+        }
+        .submit-btn:hover {
+            box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4);
+        }
+
+        /* Option Hover and Selected Effect with new dark green color and no zoom */
+        .quiz-option-label {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        /* Change background on hover */
+        .quiz-option-label:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background-color: #059669; /* Dark green background */
+        }
+        
+        /* Change text color to white on hover */
+        .quiz-option-label:hover span {
+            color: #ffffff;
+        }
+        
+        /* Selected option styling */
+        .quiz-option-label.selected {
+            background-color: #059669; /* Dark green background */
+            box-shadow: 0 44px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Ensures text inside selected option is white */
+        .quiz-option-label.selected span {
+            color: #ffffff;
+        }
+        
+        /* Hide the default radio button while keeping it functional */
+        .quiz-option-label input[type="radio"] {
+            display: none;
+        }
+        
+        /* Adjust main layout to ensure all components fit on screen */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1; /* Allows the container to fill available space */
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        /* On smaller screens, adjust padding to prevent content overflow */
+        @media (max-width: 640px) {
+            .quiz-content-wrapper {
+                padding: 1rem;
+            }
+        }
+        
+        /* No zoom effect on buttons */
+        .no-zoom:hover {
+            transform: none !important;
+        }
+        
+        /* Style for the temporary div used for image generation */
+        #download-result-container {
+            position: absolute;
+            top: -9999px; /* Hide off-screen */
+            left: -9999px;
+            width: 800px; /* A fixed width for consistent image output */
+            background-color: white;
+            padding: 2rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #download-result-container .header-clone,
+        #download-result-container .footer-clone {
+            text-align: center;
+            padding: 1rem;
+            background-color: #10b981;
+            color: white;
+        }
+        #download-result-container .results-clone {
+            padding: 2rem;
+            text-align: center;
+        }
+        #download-result-container .results-clone p,
+        #download-result-container .results-clone h2 {
+            text-align: center;
+        }
+        #download-result-container .results-clone .mb-3 {
+            margin-bottom: 0.75rem;
+        }
+        #download-result-container .results-clone .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        /* New styling for the full quiz review section */
+        .quiz-review-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background-color: #fafafa;
+        }
+
+        .quiz-review-question {
+            font-weight: 700;
+            color: #FF0000; /* Bright red */
+            margin-bottom: 0.75rem;
+            font-size: 1.125rem; /* text-lg */
+        }
+
+        .quiz-review-option {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .quiz-review-option.correct {
+            background-color: #dcfce7; /* green-100 */
+            color: #065f46; /* green-800 */
+            font-weight: 600;
+        }
+        .quiz-review-option.incorrect {
+            background-color: #fee2e2; /* red-100 */
+            color: #991b1b; /* red-800 */
+        }
+        
+        /* --- FIX: Updated the media print query to correctly display the results container --- */
+        @media print {
+            /* Hide the main header and footer, as well as the button container */
+            .no-print,
+            #name-entry-container,
+            #quiz-content-wrapper {
+                display: none !important;
+            }
+            
+            /* Ensure the main container holding the results is fully visible and styled for printing */
+            .container {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: auto !important;
+                max-width: none !important;
+                height: auto !important;
+            }
+
+            /* Ensure the results container itself is visible and formatted for a clean printout */
+            #results-container {
+                display: block !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background-color: #ffffff !important;
+            }
+        }
+
+        /* Custom CSS for the video container to maintain a 16:9 aspect ratio */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            max-width: 100%;
+            background: #000;
+            border-radius: 1rem;
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Styling for the question number circle */
+        .question-number-circle {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px; /* Adjust size as needed */
+            height: 30px; /* Adjust size as needed */
+            border-radius: 50%;
+            background-color: #059669; /* Green color */
+            color: #ffffff; /* White text */
+            font-weight: bold;
+            margin-right: 10px;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-emerald-50 to-green-100 min-h-screen flex flex-col justify-between items-center">
+
+    <!-- Stylized Green Header Label with user info -->
+    <div id="header" class="no-print w-full bg-gradient-to-r from-green-700 to-emerald-600 text-white text-center py-5 text-4xl font-extrabold rounded-b-3xl">
+        SSTs Test Preparation 2025
+        <h3 class="text-xl font-semibold mt-2">By Imran Ustad</h3>
+        <p class="text-base">WhatsApp: 03345501369</p>
+        <p class="text-base mt-1">
+            <a href="https://www.youtube.com/@TheImranUstad" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-200 transition-colors">
+                https://www.youtube.com/@TheImranUstad
+            </a>
+        </p>
+    </div>
+
+    <!-- Main quiz container with enhanced styling -->
+    <div class="container max-w-5xl mx-auto rounded-3xl shadow-2xl bg-white p-8 sm:p-12 my-8 flex-1 flex flex-col justify-center items-center">
+        
+        <!-- Name entry container (initial screen) -->
+        <div id="name-entry-container" class="w-full max-w-md text-center p-8 bg-gray-50 rounded-3xl shadow-inner border-t-4 border-green-500">
+            <h2 class="text-3xl font-extrabold text-green-700 mb-6">Welcome to the Quiz!</h2>
+            <p class="text-lg text-gray-700 mb-4">Please enter your name to begin.</p>
+            <input type="text" id="name-input" placeholder="Enter your name" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 mb-6 text-center text-lg">
+            <button id="start-btn" class="w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors bg-blue-600 hover:bg-blue-700 no-zoom">
+                Start Quiz
+            </button>
+        </div>
+        
+        <!-- Quiz content wrapper (initially hidden) -->
+        <div id="quiz-content-wrapper" class="hidden w-full">
+            <!-- Controls and Timer section (Reversed for right alignment) -->
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <!-- This div is for navigation buttons (currently empty) -->
+                <div class="flex gap-4">
+                    <!-- Navigation buttons will be dynamically shown here -->
+                </div>
+                <!-- Timer is now on the right -->
+                <div class="flex items-center space-x-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-xl font-semibold text-gray-700">Time Left:</span>
+                    <span id="timer" class="text-3xl font-bold text-red-600 bg-red-100 px-5 py-2.5 rounded-xl shadow-inner">100:00</span>
+                </div>
+            </div>
+
+            <!-- Quiz questions container -->
+            <div id="quiz-form" class="space-y-4">
+                <!-- Questions and navigation buttons will be dynamically inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Results container (initially hidden) -->
+        <div id="results-container" class="hidden mt-8 p-8 bg-gray-50 rounded-3xl shadow-inner border-t-4 border-green-500 w-full">
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-center mb-4 text-green-700">Quiz Results</h2>
+            <p class="text-lg mb-3 text-center">
+                <span id="user-name-result" class="font-extrabold text-green-600"></span>
+            </p>
+            <p class="text-lg mb-3">
+                Total Questions: <span id="total-questions" class="font-extrabold text-green-600"></span>
+            </p>
+            <p class="text-lg mb-6">
+                Obtained Marks: <span id="obtained-marks" class="font-extrabold text-green-600"></span>
+            </p>
+
+            <!-- Video Container - Moved to appear on the results page -->
+            <div class="w-full mx-auto my-8">
+                <div class="bg-white p-6 rounded-3xl shadow-2xl">
+                    <h3 class="text-xl sm:text-2xl font-extrabold text-center mb-6 text-green-700">Preparation Guide: KPPSC SST Syllabus 2025</h3>
+                    <div class="video-container">
+                        <iframe width="695" height="391" src="https://www.youtube.com/embed/sFzdY39_Kw8" title="KPPSC SST Syllabus 2025 KPK | SST General, Maths-Physics, Bio-Chem | Past Papers &amp; Preparation Guide" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <div id="full-quiz-review" class="mt-8">
+                <h3 class="text-xl font-bold text-gray-700 mb-4">Quiz Review:</h3>
+                <!-- The full quiz review will be displayed here -->
+            </div>
+            
+            <!-- Button container for the new download button and the print button -->
+            <div class="no-print flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-8">
+                <!-- Download button for results as PNG -->
+                <button id="download-btn" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-full shadow-md hover:bg-indigo-700 transition-colors no-zoom">
+                    Download Result Card (PNG)
+                </button>
+                <!-- Print Result button -->
+                <button id="print-btn" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-full shadow-md hover:bg-blue-700 transition-colors no-zoom">
+                    Print Result
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Custom modal for validation/errors -->
+    <div id="validation-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <p id="modal-message" class="text-xl font-semibold mb-6 text-gray-800"></p>
+            <button id="modal-close-btn" class="bg-red-500 text-white font-bold py-2.5 px-6 rounded-full hover:bg-red-600 transition-colors no-zoom">
+                Close
+            </button>
+        </div>
+    </div>
+    
+    <!-- Updated Green Footer Label with enhanced styling -->
+    <footer id="footer" class="no-print w-full bg-gradient-to-r from-green-700 to-emerald-600 text-white text-center py-6 text-2xl font-semibold rounded-t-3xl">
+        <h3 class="text-2xl font-extrabold mb-1">By Imran Ustad</h3>
+        <p class="text-base mb-1">WhatsApp: 03345501369</p>
+        <p class="text-base">
+            <a href="https://www.youtube.com/@TheImranUstad" target="_blank" rel="noopener noreferrer" class="text-white hover:text-gray-200 transition-colors">
+                https://www.youtube.com/@TheImranUstad
+            </a>
+        </p>
+    </footer>
+
+    <script>
+        // Array of 100 MCQs on English Grammar (Basics & Intermediate)
+        const allQuestions = [
+            // English Grammar (Basics) - 50 MCQs
+            { question: "1. Which of the following is a common noun?", options: ["Paris", "River", "Eiffel Tower", "Mr. Smith"], correct: 1 },
+            { question: "2. A word that expresses an action or state of being is called a/an:", options: ["Noun", "Adjective", "Verb", "Adverb"], correct: 2 },
+            { question: "3. Identify the adjective in the sentence: 'The red car is fast.'", options: ["The", "red", "car", "fast"], correct: 1 },
+            { question: "4. Which pronoun would you use to refer to a female dog?", options: ["He", "It", "She", "They"], correct: 2 },
+            { question: "5. The sentence 'Birds fly in the sky' is in which tense?", options: ["Past Simple", "Present Simple", "Future Simple", "Present Continuous"], correct: 1 },
+            { question: "6. Which of these is a conjunction?", options: ["Under", "But", "Quickly", "Oh"], correct: 1 },
+            { question: "7. An adverb modifies a verb, an adjective, or another adverb. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "8. Choose the correct article: 'I want ______ apple for lunch.'", options: ["a", "an", "the", "no article"], correct: 1 },
+            { question: "9. What is the plural form of 'mouse'?", options: ["mouses", "mice", "mouces", "mouse's"], correct: 1 },
+            { question: "10. The word 'interjection' expresses sudden emotion. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "11. Which punctuation mark ends an interrogative sentence?", options: ["Period", "Comma", "Question mark", "Exclamation mark"], correct: 2 },
+            { question: "12. What part of speech is 'yesterday' in 'I arrived yesterday'?", options: ["Noun", "Adjective", "Verb", "Adverb"], correct: 3 },
+            { question: "13. In 'The book is on the table,' what is 'on'?", options: ["Verb", "Noun", "Preposition", "Adjective"], correct: 2 },
+            { question: "14. Which type of sentence states a fact or an opinion?", options: ["Imperative", "Interrogative", "Exclamatory", "Declarative"], correct: 3 },
+            { question: "15. 'Wow!' is an example of a/an:", options: ["Noun", "Verb", "Adverb", "Interjection"], correct: 3 },
+            { question: "16. Which of the following is a proper noun?", options: ["city", "flower", "Amazon River", "book"], correct: 2 },
+            { question: "17. A pronoun that refers to the speaker, listener, or other people/things is a:", options: ["Possessive pronoun", "Demonstrative pronoun", "Personal pronoun", "Indefinite pronoun"], correct: 2 },
+            { question: "18. What is the past tense of 'go'?", options: ["goed", "gone", "went", "going"], correct: 2 },
+            { question: "19. Identify the linking verb: 'She looks happy.'", options: ["She", "looks", "happy", "None"], correct: 1 },
+            { question: "20. The comparative form of 'small' is:", options: ["smallest", "more small", "smaller", "most small"], correct: 2 },
+            { question: "21. Which sentence uses the correct subject-verb agreement?", options: ["The cat sleep.", "The cats sleeps.", "The cat sleeps.", "The cats is sleeping."], correct: 2 },
+            { question: "22. The word 'slowly' is an example of a/an:", options: ["Adjective", "Noun", "Verb", "Adverb of manner"], correct: 3 },
+            { question: "23. Which phrase is a prepositional phrase?", options: ["runs fast", "very tired", "in the garden", "singing loudly"], correct: 2 },
+            { question: "24. What is the superlative form of 'beautiful'?", options: ["beautifuler", "more beautiful", "beautifullest", "most beautiful"], correct: 3 },
+            { question: "25. A word that joins words, phrases, or clauses is a/an:", options: ["Preposition", "Adverb", "Conjunction", "Interjection"], correct: 2 },
+            { question: "26. Which of these is a collective noun?", options: ["table", "water", "team", "happiness"], correct: 2 },
+            { question: "27. In 'He writes neatly,' what type of adverb is 'neatly'?", options: ["Time", "Place", "Manner", "Frequency"], correct: 2 },
+            { question: "28. The future simple tense uses which auxiliary verb?", options: ["do", "did", "will", "have"], correct: 2 },
+            { question: "29. Identify the demonstrative pronoun: 'That is my book.'", options: ["That", "is", "my", "book"], correct: 0 },
+            { question: "30. 'Oh dear!' is an example of a/an:", options: ["Conjunction", "Preposition", "Interjection", "Adverb"], correct: 2 },
+            { question: "31. What is the past participle of 'write'?", options: ["write", "wrote", "written", "writing"], correct: 2 },
+            { question: "32. A sentence always contains at least one subject and one:", options: ["Adverb", "Object", "Predicate", "Preposition"], correct: 2 },
+            { question: "33. Which of these words is a possessive adjective?", options: ["mine", "us", "their", "them"], correct: 2 },
+            { question: "34. The word 'quickly' tells us:", options: ["What kind", "How many", "How", "Which one"], correct: 2 },
+            { question: "35. A proper noun always begins with a:", options: ["lowercase letter", "uppercase letter", "number", "symbol"], correct: 1 },
+            { question: "36. Which of the following verbs is irregular?", options: ["walk", "play", "sing", "talk"], correct: 2 },
+            { question: "37. An article is a type of:", options: ["Noun", "Verb", "Adjective", "Adverb"], correct: 2 },
+            { question: "38. What is the correct order: 'a tall old wise man'?", options: ["Opinion, Size, Age, Quality", "Size, Age, Opinion, Noun", "Opinion, Age, Quality, Noun", "Size, Opinion, Age, Noun"], correct: 0 },
+            { question: "39. Identify the indefinite pronoun: 'Everyone enjoyed the party.'", options: ["Everyone", "enjoyed", "the", "party"], correct: 0 },
+            { question: "40. A simple sentence has one independent clause. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "41. Which sentence is in the present continuous tense?", options: ["He plays soccer.", "He played soccer.", "He is playing soccer.", "He will play soccer."], correct: 2 },
+            { question: "42. The word 'beauty' is a/an:", options: ["Common noun", "Proper noun", "Abstract noun", "Collective noun"], correct: 2 },
+            { question: "43. Identify the adverb of time: 'I will call you soon.'", options: ["call", "you", "soon", "will"], correct: 2 },
+            { question: "44. What is the past simple of 'eat'?", options: ["eat", "eaten", "ate", "eating"], correct: 2 },
+            { question: "45. Which of these is a coordinating conjunction?", options: ["although", "because", "and", "since"], correct: 2 },
+            { question: "46. A sentence that expresses strong emotion ends with a/an:", options: ["Period", "Comma", "Question mark", "Exclamation mark"], correct: 3 },
+            { question: "47. The plural of 'tooth' is:", options: ["tooths", "teeth", "toothes", "teath"], correct: 1 },
+            { question: "48. 'Our team won the game.' What type of pronoun is 'Our'?", options: ["Personal", "Possessive", "Reflexive", "Demonstrative"], correct: 1 },
+            { question: "49. Which word indicates a frequency: 'often', 'today', 'here', 'very'?", options: ["often", "today", "here", "very"], correct: 0 },
+            { question: "50. A verb that connects the subject to a word or phrase that describes or identifies the subject is a:", options: ["Action verb", "Helping verb", "Linking verb", "Transitive verb"], correct: 2 },
+
+            // English Grammar (Intermediate) - 50 MCQs
+            { question: "51. Which sentence uses the Present Perfect Continuous Tense correctly?", options: ["She has been reading for two hours.", "She is reading for two hours.", "She read for two hours.", "She had read for two hours."], correct: 0 },
+            { question: "52. Identify the gerund in the sentence: 'Running in the morning is healthy.'", options: ["Running", "morning", "healthy", "is"], correct: 0 },
+            { question: "53. The Past Perfect Tense is used for an action that happened ______ another action in the past.", options: ["simultaneously with", "after", "before", "independently of"], correct: 2 },
+            { question: "54. What is the correct structure for the Past Perfect Continuous Tense?", options: ["Subject + had + been + Verb (past participle)", "Subject + had + been + Verb (-ing)", "Subject + have + been + Verb (-ing)", "Subject + Verb (-ing) + had been"], correct: 1 },
+            { question: "55. Which of the following is an adverbial clause?", options: ["the boy who cried", "when I arrived home", "a very old house", "to sing loudly"], correct: 1 },
+            { question: "56. Convert to passive voice: 'The news surprised everyone.'", options: ["Everyone surprised the news.", "Everyone was surprised by the news.", "The news was surprising everyone.", "The news has surprised everyone."], correct: 1 },
+            { question: "57. A sentence containing an independent clause and one or more dependent clauses is a:", options: ["Simple sentence", "Compound sentence", "Complex sentence", "Compound-complex sentence"], correct: 2 },
+            { question: "58. Identify the infinitive in the sentence: 'He wants to learn to play the guitar.'", options: ["wants", "learn", "play", "to learn"], correct: 3 },
+            { question: "59. Which type of pronoun refers to someone or something that is not specific?", options: ["Personal", "Possessive", "Indefinite", "Reflexive"], correct: 2 },
+            { question: "60. The Zero Conditional is used to talk about:", options: ["Future possibilities", "Hypothetical situations", "General truths and facts", "Past regrets"], correct: 2 },
+            { question: "61. Identify the adjective phrase: 'The dog with the wagging tail is friendly.'", options: ["The dog", "with the wagging tail", "is friendly", "wagging tail"], correct: 1 },
+            { question: "62. What is the difference between 'since' and 'for' when used with perfect tenses?", options: ["'Since' is for a period, 'for' is for a starting point.", "'Since' is for a starting point, 'for' is for a period.", "They are interchangeable.", "Neither is used with perfect tenses."], correct: 1 },
+            { question: "63. Which sentence uses the Third Conditional correctly?", options: ["If I had studied, I would pass the exam.", "If I studied, I would pass the exam.", "If I had studied, I would have passed the exam.", "If I study, I will pass the exam."], correct: 2 },
+            { question: "64. An appositive phrase renames or identifies a noun or pronoun. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "65. In 'The teacher, a kind woman, explained the lesson,' 'a kind woman' is a/an:", options: ["Adjective phrase", "Adverb phrase", "Appositive phrase", "Prepositional phrase"], correct: 2 },
+            { question: "66. What type of pronoun is used to introduce a dependent clause (e.g., 'who', 'which', 'that')?", options: ["Interrogative", "Relative", "Demonstrative", "Reflexive"], correct: 1 },
+            { question: "67. Identify the correct order of adjectives: 'a small old brown wooden box'.", options: ["Opinion, Age, Color, Material, Noun", "Size, Age, Color, Material, Noun", "Color, Size, Age, Material, Noun", "Material, Size, Age, Color, Noun"], correct: 1 },
+            { question: "68. Which sentence demonstrates correct use of inversion with 'hardly'?", options: ["Hardly he had arrived when it started raining.", "Hardly had he arrived when it started raining.", "He hardly had arrived when it started raining.", "He had hardly arrived when it started raining."], correct: 1 },
+            { question: "69. A participial phrase functions as a/an:", options: ["Noun", "Verb", "Adverb", "Adjective"], correct: 3 },
+            { question: "70. In 'Running quickly, she caught the bus,' 'Running quickly' is a:", options: ["Gerund phrase", "Infinitive phrase", "Participial phrase", "Prepositional phrase"], correct: 2 },
+            { question: "71. What is the function of 'used to'?", options: ["To express present habits", "To express future plans", "To express past habits or states that no longer exist", "To express commands"], correct: 2 },
+            { question: "72. Which modal verb expresses strong obligation or necessity?", options: ["might", "could", "must", "should"], correct: 2 },
+            { question: "73. A phrasal verb consists of a verb and a particle (preposition or adverb). True or False?", options: ["True", "False"], correct: 0 },
+            { question: "74. Identify the phrasal verb: 'She looked up the word in the dictionary.'", options: ["She looked", "looked up", "up the word", "in the dictionary"], correct: 1 },
+            { question: "75. Which type of conditional sentence talks about hypothetical situations in the present or future?", options: ["Zero Conditional", "First Conditional", "Second Conditional", "Third Conditional"], correct: 2 },
+            { question: "76. What is the difference between 'lie' (to recline) and 'lay' (to put something down)?", options: ["'Lie' needs an object, 'lay' does not.", "'Lay' needs an object, 'lie' does not.", "They are interchangeable.", "One is past tense, the other is present."], correct: 1 },
+            { question: "77. 'Neither he nor I am going' is an example of what rule?", options: ["Subject-verb agreement with 'neither...nor'", "Inversion", "Parallelism", "Subjunctive mood"], correct: 0 },
+            { question: "78. Which of these is a non-defining relative clause?", options: ["The man who lives next door is a doctor.", "My brother, who lives in Canada, is visiting.", "I read the book that you recommended.", "This is the place where we met."], correct: 1 },
+            { question: "79. A dangling modifier occurs when a modifier's implied subject is different from the explicit subject of the clause it modifies. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "80. Correct the dangling modifier: 'Walking down the street, the trees were beautiful.'", options: ["Walking down the street, I found the trees beautiful.", "The trees were beautiful while walking down the street.", "Beautiful trees were walking down the street.", "As I walked down the street, the trees were beautiful."], correct: 3 },
+            { question: "81. Which sentence uses parallel structure correctly?", options: ["She enjoys swimming, hiking, and to cycle.", "She enjoys to swim, to hike, and cycling.", "She enjoys swimming, hiking, and cycling.", "She enjoys swimming, hiking, and to go cycling."], correct: 2 },
+            { question: "82. What is the subjunctive mood primarily used for?", options: ["Stating facts", "Expressing commands", "Expressing wishes, recommendations, or hypothetical situations", "Describing past events"], correct: 2 },
+            { question: "83. In 'I suggest that he be on time,' 'be' is an example of the:", options: ["Indicative mood", "Imperative mood", "Subjunctive mood", "Infinitive form"], correct: 2 },
+            { question: "84. Identify the compound-complex sentence:", options: ["She sang, and he danced.", "Although it was cold, we went for a walk.", "She sang, and he danced, while I played the piano.", "She sang beautifully."], correct: 2 },
+            { question: "85. A verb followed by a preposition or adverb that creates a new meaning is a:", options: ["Auxiliary verb", "Linking verb", "Phrasal verb", "Transitive verb"], correct: 2 },
+            { question: "86. Which sentence contains a correctly used past participle as an adjective?", options: ["The broken window needs repair.", "The breaking window needs repair.", "The window breaking needs repair.", "The window broke needs repair."], correct: 0 },
+            { question: "87. The Passive Voice is often used when the agent (doer of the action) is:", options: ["Important and known", "Unimportant or unknown", "The main focus", "Always a person"], correct: 1 },
+            { question: "88. In 'He could have gone to the party,' 'could have gone' expresses:", options: ["Ability in the past", "A past possibility that did not happen", "A future possibility", "A past certainty"], correct: 1 },
+            { question: "89. Which sentence uses 'less' and 'fewer' correctly?", options: ["There are less people here.", "There is fewer water in the glass.", "There are fewer people here.", "There is less apples on the table."], correct: 2 },
+            { question: "90. 'Whether' is typically used when expressing a choice between two alternatives. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "91. What is the difference between 'affect' and 'effect'?", options: ["'Affect' is a noun, 'effect' is a verb.", "'Affect' is a verb, 'effect' is a noun.", "They are interchangeable.", "One is singular, one is plural."], correct: 1 },
+            { question: "92. Which sentence uses the correct punctuation for a direct quotation?", options: ["He said, 'I am tired'.", "He said 'I am tired'.", "He said, 'I am tired.'", "He said 'I am tired.'"], correct: 2 },
+            { question: "93. 'Its' is a possessive pronoun, while 'it's' is a contraction for 'it is' or 'it has'. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "94. Identify the independent clause in: 'Because it was raining, we stayed indoors, but we played board games.'", options: ["Because it was raining", "we stayed indoors", "we stayed indoors, but we played board games", "but we played board games"], correct: 1 },
+            { question: "95. What is an ellipsis (...) used for?", options: ["To indicate a question", "To show strong emotion", "To indicate omitted words in a quotation", "To separate items in a list"], correct: 2 },
+            { question: "96. Which sentence demonstrates an idiom?", options: ["She walks quickly.", "It's raining cats and dogs.", "He ate dinner.", "They sang a song."], correct: 1 },
+            { question: "97. 'Neither of the students was present.' This sentence follows the rule that 'neither' takes a ______ verb.", options: ["plural", "singular", "compound", "irregular"], correct: 1 },
+            { question: "98. A sentence fragment is a group of words that looks like a sentence but is missing a subject, a verb, or both, or does not express a complete thought. True or False?", options: ["True", "False"], correct: 0 },
+            { question: "99. Choose the sentence without a comma splice:", options: ["I like coffee, I also like tea.", "I like coffee; I also like tea.", "I like coffee, and I also like tea.", "I like coffee. Also, I like tea."], correct: 1 },
+            { question: "100. The active voice generally makes writing more direct and forceful. True or False?", options: ["True", "False"], correct: 0 }
+        ];
+
+        let userAnswers = {};
+        let currentQuestionIndex = 0;
+        let timerSeconds = 100 * 60; // 100 minutes for 100 questions
+        let timerInterval;
+        let userName = '';
+
+        const nameEntryContainer = document.getElementById('name-entry-container');
+        const quizContentWrapper = document.getElementById('quiz-content-wrapper');
+        const nameInput = document.getElementById('name-input');
+        const startBtn = document.getElementById('start-btn');
+        const quizForm = document.getElementById('quiz-form');
+        const resultsContainer = document.getElementById('results-container');
+        const timerDisplay = document.getElementById('timer');
+        const modal = document.getElementById('validation-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const printBtn = document.getElementById('print-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const userNameResult = document.getElementById('user-name-result');
+        const fullQuizReview = document.getElementById('full-quiz-review');
+
+        // Function to render a single question on the page
+        function renderQuestion(index) {
+            quizForm.innerHTML = ''; // Clear previous questions
+            const q = allQuestions[index];
+
+            const questionBox = document.createElement('div');
+            questionBox.className = 'bg-slate-100 p-6 rounded-2xl shadow-lg mb-6';
+            
+            const questionText = document.createElement('p');
+            // Apply bright red color directly via class
+            questionText.className = 'text-lg sm:text-xl font-bold font-georgia text-[#FF0000] mb-4 flex items-center'; 
+            
+            const questionNumberSpan = document.createElement('span');
+            questionNumberSpan.className = 'question-number-circle';
+            questionNumberSpan.textContent = (index + 1);
+            questionText.appendChild(questionNumberSpan);
+            
+            const questionContentSpan = document.createElement('span');
+            // Get clean text content from the question string (strip leading number and dot)
+            questionContentSpan.textContent = q.question.replace(/^\d+\.\s*/, ''); 
+            questionText.appendChild(questionContentSpan);
+
+            questionBox.appendChild(questionText);
+
+            q.options.forEach((option, optionIndex) => {
+                const label = document.createElement('label');
+                label.className = 'quiz-option-label relative flex items-center p-4 mb-3 rounded-xl bg-white border border-gray-200 cursor-pointer transition-all duration-300 ease-in-out';
+                
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = `question-${index}`;
+                input.value = optionIndex;
+                
+                const optionSpan = document.createElement('span');
+                optionSpan.className = 'ml-3 text-base sm:text-lg text-gray-800 font-medium';
+                // Options are already plain text, no need to strip HTML
+                optionSpan.textContent = option; 
+                
+                label.appendChild(input);
+                label.appendChild(optionSpan);
+                questionBox.appendChild(label);
+            });
+
+            // Add navigation buttons to the question box
+            const navButtonsDiv = document.createElement('div');
+            navButtonsDiv.className = 'flex justify-between mt-6 space-x-4';
+            
+            // Previous Button
+            const prevBtn = document.createElement('button');
+            prevBtn.id = 'prev-btn';
+            prevBtn.textContent = 'Previous';
+            prevBtn.className = 'w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors bg-gray-500 hover:bg-gray-600 no-zoom';
+            prevBtn.addEventListener('click', previousQuestion);
+
+            // Hide the previous button on the first question
+            if (currentQuestionIndex === 0) {
+                prevBtn.classList.add('hidden');
+            }
+
+            // Next/Submit Button
+            let nextBtn;
+            if (currentQuestionIndex === allQuestions.length - 1) {
+                nextBtn = document.createElement('button');
+                nextBtn.id = 'submit-btn';
+                nextBtn.textContent = 'Submit Quiz';
+                nextBtn.className = 'w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors submit-btn no-zoom';
+                nextBtn.addEventListener('click', submitQuiz);
+            } else {
+                nextBtn = document.createElement('button');
+                nextBtn.id = 'next-btn';
+                nextBtn.textContent = 'Next';
+                nextBtn.className = 'w-full text-white font-bold py-3.5 rounded-full shadow-lg transition-colors bg-blue-600 hover:bg-blue-700 no-zoom';
+                nextBtn.addEventListener('click', nextQuestion);
+            }
+            
+            navButtonsDiv.appendChild(prevBtn);
+            navButtonsDiv.appendChild(nextBtn);
+            questionBox.appendChild(navButtonsDiv);
+            
+            quizForm.appendChild(questionBox);
+            
+            // Highlight the previously selected answer if it exists
+            if (userAnswers[index] !== undefined) {
+                const selectedLabel = quizForm.querySelector(`input[name="question-${index}"][value="${userAnswers[index]}"]`).closest('label');
+                if (selectedLabel) {
+                    selectedLabel.classList.add('selected');
+                    selectedLabel.querySelector('input').checked = true; // Set the radio button as checked
+                }
+            }
+
+            // Add event listeners for new radio buttons
+            const radioButtons = quizForm.querySelectorAll('input[type="radio"]');
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', (event) => {
+                    const parentLabel = event.target.closest('label');
+                    const questionBox = parentLabel.closest('div');
+                    
+                    // Remove 'selected' class from all other labels in the same question
+                    questionBox.querySelectorAll('label').forEach(label => {
+                        label.classList.remove('selected');
+                    });
+                    
+                    // Add 'selected' class to the currently chosen label
+                    parentLabel.classList.add('selected');
+                });
+            });
+        }
+        
+        // Function to start the countdown timer
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                const minutes = Math.floor(timerSeconds / 60);
+                const seconds = timerSeconds % 60;
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (timerSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerDisplay.textContent = "Time's up!";
+                    submitQuiz();
+                }
+            }, 1000);
+        }
+
+        // Function to show the custom validation modal
+        function showModal(message) {
+            modalMessage.textContent = message;
+            modal.classList.add('active');
+            modal.classList.remove('hidden');
+        }
+
+        // Function to move to the next question
+        function nextQuestion() {
+            const selected = document.querySelector(`input[name="question-${currentQuestionIndex}"]:checked`);
+            if (!selected) {
+                showModal("Please select an option before moving to the next question.");
+                return;
+            }
+            userAnswers[currentQuestionIndex] = parseInt(selected.value);
+            
+            currentQuestionIndex++;
+            if (currentQuestionIndex < allQuestions.length) {
+                renderQuestion(currentQuestionIndex);
+            }
+        }
+        
+        // Function to move to the previous question
+        function previousQuestion() {
+            // Save the current answer before moving back
+            const selected = document.querySelector(`input[name="question-${currentQuestionIndex}']:checked`);
+            if (selected) {
+                userAnswers[currentQuestionIndex] = parseInt(selected.value);
+            }
+            
+            currentQuestionIndex--;
+            if (currentQuestionIndex >= 0) {
+                renderQuestion(currentQuestionIndex);
+            }
+        }
+        
+        // New function to start the quiz after name entry
+        function startQuiz() {
+            const name = nameInput.value.trim();
+            if (!name) {
+                showModal("Please enter your name to start the quiz.");
+                return;
+            }
+            userName = name;
+            nameEntryContainer.classList.add('hidden');
+            quizContentWrapper.classList.remove('hidden');
+            renderQuestion(currentQuestionIndex);
+            startTimer();
+        }
+
+        // Function to render the full quiz results with correct and incorrect answers highlighted
+        function renderFullResults() {
+            fullQuizReview.innerHTML = ''; // Clear previous review
+            
+            allQuestions.forEach((q, index) => {
+                const questionReviewItem = document.createElement('div');
+                questionReviewItem.className = 'quiz-review-item';
+                
+                const questionText = document.createElement('p');
+                // Use the quiz-review-question class to apply bright red color
+                questionText.className = 'quiz-review-question';
+                // Get clean text content from the question string (strip leading number and dot)
+                questionText.innerHTML = `<span class="question-number-circle">${index + 1}</span> ${q.question.replace(/^\d+\.\s*/, '')}`;
+                questionReviewItem.appendChild(questionText);
+
+                q.options.forEach((option, optionIndex) => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'quiz-review-option';
+                    
+                    const isCorrect = optionIndex === q.correct;
+                    const isUserAnswer = userAnswers[index] === optionIndex;
+
+                    // Apply green for correct answer
+                    if (isCorrect) {
+                        optionDiv.classList.add('correct');
+                        optionDiv.innerHTML = `✅ ${option}`;
+                    } 
+                    // Apply red for incorrect user answer
+                    else if (isUserAnswer) {
+                        optionDiv.classList.add('incorrect');
+                        optionDiv.innerHTML = `❌ ${option}`;
+                    }
+                    // Default styling for other options
+                    else {
+                        optionDiv.innerHTML = `${String.fromCharCode(65 + optionIndex)}. ${option}`;
+                    }
+                    
+                    questionReviewItem.appendChild(optionDiv);
+                });
+                
+                fullQuizReview.appendChild(questionReviewItem);
+            });
+        }
+
+        // Function to submit the quiz and display results
+        function submitQuiz() {
+            clearInterval(timerInterval); // Stop the timer
+            
+            // Check if the final question is answered
+            const selected = document.querySelector(`input[name="question-${currentQuestionIndex}"]:checked`);
+            if (!selected) {
+                showModal("Please select an option before submitting.");
+                return;
+            }
+            userAnswers[currentQuestionIndex] = parseInt(selected.value);
+
+            // Disable all radio buttons and buttons after submission
+            const allRadios = quizForm.querySelectorAll('input[type="radio"]');
+            allRadios.forEach(radio => radio.disabled = true);
+
+            let score = 0;
+            allQuestions.forEach((q, index) => {
+                if (userAnswers[index] === q.correct) {
+                    score++;
+                }
+            });
+
+            // Display results
+            userNameResult.textContent = `Quiz Taker: ${userName}`;
+            document.getElementById('total-questions').textContent = allQuestions.length;
+            document.getElementById('obtained-marks').textContent = score;
+            
+            // Render the full quiz review
+            renderFullResults();
+
+            // Hide quiz, show results container
+            quizContentWrapper.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+            resultsContainer.scrollBy.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Show the name entry screen by default
+            nameEntryContainer.classList.remove('hidden');
+        });
+        
+        startBtn.addEventListener('click', startQuiz);
+        
+        modalCloseBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('active');
+        });
+        
+        // Event listener for the "Print Result" button
+        printBtn.addEventListener('click', () => {
+            window.print();
+        });
+        
+        // Event listener for the "Download Result Card" button
+        downloadBtn.addEventListener('click', () => {
+            const headerContent = document.getElementById('header').innerHTML;
+            const footerContent = document.getElementById('footer').innerHTML;
+            const userName = document.getElementById('user-name-result').textContent;
+            const totalQuestions = document.getElementById('total-questions').textContent;
+            const obtainedMarks = document.getElementById('obtained-marks').textContent;
+
+            // Create a temporary, hidden container for the image generation
+            const tempContainer = document.createElement('div');
+            tempContainer.id = 'download-result-container';
+            document.body.appendChild(tempContainer);
+
+            // Get current date and time
+            const now = new Date();
+            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            
+            // Build the simplified content for the image
+            tempContainer.innerHTML = `
+                <div class="header-clone">${headerContent}</div>
+                <div class="results-clone">
+                    <h2 class="text-3xl font-extrabold text-center mb-4 text-green-700">Quiz Results</h2>
+                    <p class="text-lg mb-1 text-center font-bold text-gray-700">100 English Grammar MCQs</p>
+                    <p class="text-lg mb-3 text-center font-extrabold text-green-600">${userName}</p>
+                    <p class="text-lg text-gray-700 mt-4 text-center">Date: ${dateStr} - Time: ${timeStr}</p>
+                    <p class="text-lg mb-3 text-center">
+                        Total Questions: <span class="font-extrabold text-green-600">${totalQuestions}</span>
+                    </p>
+                    <p class="text-lg mb-6 text-center">
+                        Obtained Marks: <span class="font-extrabold text-green-600">${obtainedMarks}</span>
+                    </p>
+                </div>
+                <div class="footer-clone">${footerContent}</div>
+            `;
+            
+            // Use html2canvas to capture the content of the temporary container
+            html2canvas(tempContainer, {
+                scale: 2, // Increase scale for a higher-quality image
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const image = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = 'SST_Test_Result_Card.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }).finally(() => {
+                // Clean up the temporary container
+                document.body.removeChild(tempContainer);
+            });
+        });
+    </script>
+</body>
+</html>
